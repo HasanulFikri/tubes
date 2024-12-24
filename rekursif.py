@@ -6,7 +6,6 @@ import time
 import math
 
 # Fungsi iteratif
-
 def revised_power(a, b):
     try:
         if b == 0:
@@ -32,6 +31,7 @@ def revised_power(a, b):
             while p > 0:
                 if p % 2 == 1:
                     result_p *= a
+
                 a *= a
                 p //= 2
 
@@ -61,13 +61,19 @@ def eksponen(a, b):
         return 1
     elif b < 0:
         return 1 / eksponen(a, -b)
-    elif isinstance(b, float) and b != int(b):
+    elif isinstance(b, float):
         return a ** b
-    elif b % 2 == 0:
-        half = eksponen(a, b // 2)
-        return half * half
     else:
-        return a * eksponen(a, b - 1)
+        def rekursif(a, b):
+            if b == 0:
+                return 1
+            elif b % 2 == 0:
+                half = rekursif(a, b // 2)
+                return half * half
+            else:
+                return a * rekursif(a, b - 1)
+
+        return rekursif(a, b)
 
 # Streamlit interface
 st.title("Aplikasi Eksponen: Iteratif vs Rekursif")
@@ -106,10 +112,10 @@ if uploaded_file:
                 results_recursive.append(result_rec)
 
             # Tambahkan hasil dan waktu eksekusi ke dataframe
-            df['Result (Iterative)'] = results_iterative
-            df['T(n) Iterative (µs)'] = times_iterative
-            df['Result (Recursive)'] = results_recursive
-            df['T(n) Recursive (µs)'] = times_recursive
+            df['Hasil (Iterative)'] = results_iterative
+            df['T(b) Iterative'] = times_iterative
+            df['Hasil (Recursive)'] = results_recursive
+            df['T(b-1) + O(1) Recursive'] = times_recursive
 
             # Tampilkan hasil dan waktu eksekusi
             st.write("### Data dengan Hasil dan Waktu Eksekusi:")
@@ -117,27 +123,37 @@ if uploaded_file:
 
             # Grafik
             st.write("### Grafik Running Time")
-            x_axis = df.index.tolist()
+            sample_data = df.iloc[:5]
+            x_axis = sample_data.index.tolist()
 
-            option_iterative = {
+            option_combined = {
                 "xAxis": {"type": "category", "data": x_axis},
                 "yAxis": {"type": "value"},
-                "series": [{"data": times_iterative, "type": "line", "name": "Iterative"}],
+                "legend": {"data": ["Iterative", "Recursive"]},
+                "series": [
+                    {"data": sample_data['T(b) Iterative'].tolist(), "type": "line", "name": "Iterative"},
+                    {"data": sample_data['T(b-1) + O(1) Recursive'].tolist(), "type": "line", "name": "Recursive"},
+                ],
             }
 
-            option_recursive = {
-                "xAxis": {"type": "category", "data": x_axis},
-                "yAxis": {"type": "value"},
-                "series": [{"data": times_recursive, "type": "line", "name": "Recursive"}],
-            }
+            st_echarts(option_combined, height="400px")
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("#### Iterative")
-                st_echarts(option_iterative, height="400px")
-            with col2:
-                st.write("#### Recursive")
-                st_echarts(option_recursive, height="400px")
+           # Rata-rata waktu eksekusi
+            avg_time_iterative = sum(times_iterative) / len(times_iterative)
+            avg_time_recursive = sum(times_recursive) / len(times_recursive)
+
+            # Tampilkan rata-rata waktu eksekusi
+            st.write("### Rata-rata Waktu Eksekusi:")
+            st.write(f"- Metode **Iteratif**: {avg_time_iterative:.2f} µs")
+            st.write(f"- Metode **Rekursif**: {avg_time_recursive:.2f} µs")
+
+            # Kesimpulan
+            st.write("### Kesimpulan:")
+            if avg_time_iterative < avg_time_recursive:
+                st.write(f"Metode **Iteratif** lebih cepat dengan waktu rata-rata {avg_time_iterative:.2f} µs.")
+            else:
+                st.write(f"Metode **Rekursif** lebih cepat dengan waktu rata-rata {avg_time_recursive:.2f} µs.")
+
 
             # Unduh hasil sebagai Excel
             @st.cache_data
